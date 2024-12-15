@@ -122,7 +122,7 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     order_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    cart_item = models.ForeignKey(CartItem, on_delete=models.CASCADE)
+    cart_item = models.ForeignKey(CartItem, on_delete=models.CASCADE)#
     date = models.DateTimeField(auto_now_add=True)
     STATUS_CHOICES = (
         ('обработка', 'Oбработка'),
@@ -139,6 +139,7 @@ class Order(models.Model):
     address = models.CharField(max_length=100)
     # quantity = models.PositiveSmallIntegerField()
     # wear = models.ForeignKey(Clothes, on_delete=models.CASCADE)
+
 
     def __str__(self):
         return f'{self.order_user} - {self.order_status}'
