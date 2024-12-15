@@ -1,10 +1,13 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, status
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
 from .serializer import *
+from django.db.models import Avg
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -20,11 +23,12 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
 
 class ClothesListAPIView(generics.ListAPIView):
-    queryset = Clothes.objects.all()
+    queryset = Clothes.objects.annotate(avg_rating=Avg('clothes_review__stars'))  # Добавляем аннотацию для среднего рейтинга
     serializer_class = ClothesListSerializer
+    filter_backends = [OrderingFilter]
     search_fields = ['clothes_name']
-    ordering_fields = ['price']
-
+    ordering_fields = ['avg_rating', 'price', 'created_date']  # Поля для сортировки
+    ordering = ['-avg_rating']  # Сортировка по убыванию популярности (по умолчанию)
 
 
 class CategoryListAPIView(generics.ListAPIView):
@@ -52,6 +56,7 @@ class CartListAPIView(generics.ListAPIView):
     search_fields = ['clothes_name']
     ordering_fields = ['price']
 
+
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user)
 
@@ -75,41 +80,6 @@ class CartItemCreateAPIView(generics.CreateAPIView):#?
 class CartItemUpdateDeleteApiView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CartItem.objects.all()
     serializer_class = CartItemSerializer
-
-
-# class OrderCreateView(generics.CreateAPIView):
-#     queryset = Order.objects.all()
-#     serializer_class = OrderSerializer
-#
-#     def post(self, request, *args, **kwargs):
-#         clothes_id = request.data.get('clothes_id')  # ID товара
-#         quantity_order = request.data.get('quantity_order')  # Количество товара в заказе
-#
-#         try:
-#             clothes = Clothes.objects.get(id=clothes_id)
-#         except Clothes.DoesNotExist:
-#             return Response({"error": "Товар не найден"}, status=status.HTTP_404_NOT_FOUND)
-#
-#         if quantity_order > clothes.quantity:
-#             return Response(
-#                 {"message": f"У нас осталось только {clothes.quantity} штук"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-#         elif quantity_order == clothes.quantity:
-#             # Создаем заказ
-#             Order.objects.create(quantity_order=quantity_order, clothes=clothes)
-#             # Обновляем количество товара в базе
-#             clothes.quantity = 0
-#             clothes.save()
-#             return Response({"message": "Заказ выполнен успешно"}, status=status.HTTP_201_CREATED)
-#         else:
-#             # Создаем заказ
-#             Order.objects.create(quantity_order=quantity_order, clothes=clothes)
-#             # Обновляем количество товара в базе
-#             clothes.quantity -= quantity_order
-#             clothes.save()
-#             return Response({"message": "Заказ выполнен успешно"}, status=status.HTTP_201_CREATED)
-
 
     def get_queryset(self):
         return Order.objects.all()
@@ -135,3 +105,37 @@ class FavoriteViewSet(generics.CreateAPIView):
     serializer_class = FavoriteSerializer
 
 
+class FavoriteItemViewSet(generics.CreateAPIView):
+    queryset = FavoriteItem.objects.all()
+    serializer_class = FavoriteItemSerializer
+
+
+class AddToCartView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = AddToCartSerializer(data=request.data)
+        if serializer.is_valid():
+            cart_item = serializer.save(user=request.user)
+            return Response(
+                {
+                    "message": f"{cart_item.clothes.clothes_name} добавлен в корзину.",
+                    "item": {
+                        "id": cart_item.id,
+                        "clothes": cart_item.clothes.clothes_name,
+                        "color": cart_item.color,
+                        "size": cart_item.size,
+                        "quantity": cart_item.quantity,
+                        "total_price": cart_item.get_total_price(),
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CartDetailView(RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartListSerializer
+
+    def get_object(self):
+        cart, created = Cart.objects.get_or_create(user=self.request.user)
+        return cart

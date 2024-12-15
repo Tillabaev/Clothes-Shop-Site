@@ -109,7 +109,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartItem
-        fields = ['clothes', 'clothes_id', 'quantity', 'total_price']
+        fields = ['clothes', 'clothes_id', 'quantity', 'total_price', 'color', 'size']
 
     def get_total_price(self, obj):
         return obj.get_total_price()
@@ -161,4 +161,47 @@ class ClothesDetailSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
-        fields = ['clothes', 'favorite_user', 'created_date']
+        fields = ['favorite_user', 'created_date']
+
+
+class FavoriteItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteItem
+        fields = ['favorite', 'clothes']
+
+
+class AddToCartSerializer(serializers.Serializer):
+    clothes_id = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1)
+    color = serializers.CharField(max_length=32)
+    size = serializers.CharField(max_length=4)
+
+    def validate(self, data):
+        try:
+            clothes_item = Clothes.objects.get(pk=data['clothes_id'])
+            if not clothes_item.active or clothes_item.quantities < data['quantity']:
+                raise serializers.ValidationError("Недостаточно товара на складе.")
+        except Clothes.DoesNotExist:
+            raise serializers.ValidationError("Товар не найден.")
+        return data
+
+    def save(self, **kwargs):
+        user = kwargs['user']
+        cart, created = Cart.objects.get_or_create(user=user)
+        clothes_item = Clothes.objects.get(pk=self.validated_data['clothes_id'])
+        quantity = self.validated_data['quantity']
+        color = self.validated_data.get('color')  # Убедитесь, что поле 'color' передано
+        size = self.validated_data.get('size')
+
+
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, clothes=clothes_item,
+                                                            color=color, size=size)
+        if not created:
+            cart_item.quantity += quantity
+        else:
+            cart_item.quantity = quantity
+        cart_item.save()
+        clothes_item.quantities -= quantity
+        clothes_item.save()
+
+        return cart_item

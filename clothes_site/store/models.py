@@ -46,8 +46,10 @@ class Clothes(models.Model):
     active = models.BooleanField(default=True, verbose_name='в наличии')
     clothes_photo = models.FileField(upload_to='clothes_video/', null=True, blank=True)
     quantities = models.PositiveSmallIntegerField()
+    created_date = models.DateField(auto_now_add=True)
 
     def __str__(self):
+
         return f'{self.clothes_name} - {self.price}'
 
     def get_average_rating(self):
@@ -88,15 +90,6 @@ class Review(models.Model):
         return f'{self.author} - {self.clothes_review} - {self.stars}'
 
 
-class Favorite(models.Model):
-    favorite_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='favorite_user')
-    clothes = models.ManyToManyField(Clothes, related_name='favorite_clothes')
-    created_date = models.DateField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.favorite_user}'
-
-
 class Cart(models.Model):
     user = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='cart')
 
@@ -112,9 +105,11 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_cart')
     quantity = models.PositiveSmallIntegerField(default=1)
+    color = models.CharField(max_length=50)
+    size = models.CharField(max_length=10)
 
     def __str__(self):
-        return f'{self.clothes} - {self.quantity}'
+        return f'{self.clothes} - {self.quantity}, {self.size} - {self.quantity}'
 
     def get_total_price(self):
         return self.clothes.price * self.quantity
@@ -137,6 +132,8 @@ class Order(models.Model):
     )
     delivery = models.CharField(max_length=20, default='самовызов', choices=STATUS_DELIVERY)
     address = models.CharField(max_length=100)
+    order_price = models.DecimalField(max_digits=10, decimal_places=0)
+
     # quantity = models.PositiveSmallIntegerField()
     # wear = models.ForeignKey(Clothes, on_delete=models.CASCADE)
 
@@ -144,6 +141,17 @@ class Order(models.Model):
         return f'{self.order_user} - {self.order_status}'
 
 
+class Favorite(models.Model):
+    favorite_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='favorite_user')
+    created_date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.favorite_user}'
 
 
+class FavoriteItem(models.Model):
+    favorite = models.ForeignKey(Favorite, related_name='items', on_delete=models.CASCADE)
+    clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_favorite')
 
+    def __str__(self):
+        return f'{self.clothes}'
