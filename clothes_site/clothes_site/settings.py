@@ -53,8 +53,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-        'rest_framework_swagger',
-        'drf_yasg',
+    'rest_framework_swagger',
+    'drf_yasg',
+    'corsheaders',
 
 
 
@@ -69,7 +70,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+
 ]
+
+
 
 ROOT_URLCONF = 'clothes_site.urls'
 
@@ -174,5 +180,12 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES':('Bearer',),
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
 
 

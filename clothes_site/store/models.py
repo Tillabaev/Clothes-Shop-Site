@@ -2,9 +2,9 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from phonenumber_field.formfields import PhoneNumberField
 from multiselectfield import MultiSelectField
-
 from django.db import transaction
 from django.core.exceptions import ValidationError
+
 
 class UserProfile(AbstractUser):
     phone_number = PhoneNumberField(region='KG')
@@ -55,11 +55,8 @@ class Clothes(models.Model):
     active = models.BooleanField(default=True, verbose_name='в наличии')
     clothes_photo = models.FileField(upload_to='clothes_video/', null=True, blank=True)
     quantities = models.PositiveSmallIntegerField()
-<<<<<<< HEAD
     color = models.ManyToManyField(Color, related_name='clothes')
-=======
     created_date = models.DateField(auto_created=True)
->>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 
     def __str__(self):
         return f'{self.clothes_name} - {self.price}'
@@ -76,8 +73,6 @@ class Textile(models.Model):
     textile_clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE,related_name='textile_clothes')
 
 
-<<<<<<< HEAD
-=======
 class Color(models.Model):
     color = models.CharField(max_length=25, unique=True)
     clothes_connect = models.ForeignKey(Clothes, on_delete=models.CASCADE, null=True, blank=True, related_name='color')
@@ -86,7 +81,6 @@ class Color(models.Model):
         return f'{self.color}'
 
 
->>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 class Photo(models.Model):
     photo = models.FileField(upload_to='clothes_color_img/')
     clothes_photo = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_img')

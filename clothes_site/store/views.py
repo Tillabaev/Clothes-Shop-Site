@@ -15,7 +15,6 @@ from rest_framework.permissions import *
 
 class AddToCartView(APIView):
 
-
     def post(self, request, clothes_id):
         size = request.data.get('size')  # Получаем выбранный размер
         color_id = request.data.get('color')  # Получаем выбранный цвет
@@ -35,10 +34,6 @@ class AddToCartView(APIView):
         return Response({"detail": "Item added to cart."}, status=status.HTTP_201_CREATED)
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.core.exceptions import ValidationError
 
 class CreateOrderView(APIView):
     def post(self, request):
@@ -136,22 +131,11 @@ class CartItemUpdateDeleteApiView(generics.RetrieveUpdateDestroyAPIView):
         return Order.objects.all()
 
 
-
 class ClothesDetailViewSet(generics.RetrieveAPIView):
     queryset = Clothes.objects.all()
     serializer_class = ClothesDetailSerializer
     search_fields = ['clothes_name']
     ordering_fields = ['price']
-
-    @action(detail=False, methods=['get'])
-    def by_color(self, request):
-        # Түс боюнча кийимдерди фильтровать кылуу
-        color_id = request.query_params.get('color', None)
-        if color_id is not None:
-            clothes = Clothes.objects.filter(colors__id=color_id)
-            serializer = ClothesDetailSerializer(clothes, many=True)
-            return Response(serializer.data)
-        return Response({"error": "Color parameter is required."}, status=400)
 
 
 class FavoriteViewSet(generics.ListCreateAPIView):

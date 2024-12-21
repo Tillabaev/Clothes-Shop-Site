@@ -21,10 +21,7 @@ urlpatterns = [
 
     path('cart_item/<int:pk>/', CartItemUpdateDeleteApiView.as_view(), name='cart_item_delete'),
 
-<<<<<<< HEAD
 
-
-=======
     path('favorite/', FavoriteViewSet.as_view(), name='favorite'),
 
     path('favorite_item/', FavoriteItemViewSet.as_view(), name='favorite_item'),
@@ -34,5 +31,4 @@ urlpatterns = [
     path('order_create/',CreateOrderView.as_view(),name = 'test_order_create'),
 
     path('order_check/',OrderCheckList.as_view(),name = 'order_check'),
->>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 ]
