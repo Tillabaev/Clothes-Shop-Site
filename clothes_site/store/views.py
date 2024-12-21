@@ -4,8 +4,68 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import generics, viewsets, status,permissions
+from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import *
 from .serializer import *
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import *
+
+
+class AddToCartView(APIView):
+
+
+    def post(self, request, clothes_id):
+        size = request.data.get('size')  # Получаем выбранный размер
+        color_id = request.data.get('color')  # Получаем выбранный цвет
+
+        if not size or not color_id:
+            return Response({"detail": "Size and color must be selected."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            color = Color.objects.get(id=color_id)
+            clothes = Clothes.objects.get(id=clothes_id)
+        except (Color.DoesNotExist, Clothes.DoesNotExist):
+            return Response({"detail": "Invalid color or clothes ID."}, status=status.HTTP_404_NOT_FOUND)
+
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        CartItem.objects.create(cart=cart, product=clothes, size=size, color=color)
+
+        return Response({"detail": "Item added to cart."}, status=status.HTTP_201_CREATED)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.core.exceptions import ValidationError
+
+class CreateOrderView(APIView):
+    def post(self, request):
+        try:
+            user = request.user
+            address = request.data.get('address', '')
+            delivery = request.data.get('delivery', 'самовызов')
+
+            if not address:
+                return Response({"detail": "Address is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Создаем заказ
+            order = Order.objects.create(order_user=user, address=address, delivery=delivery)
+            return Response({"detail": "Order created successfully."}, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": "An error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class OrderCheckList(generics.ListAPIView):
+    serializer_class = OrderCheckSerializer
+
+    def get_queryset(self):
+        return Order.objects.filter(order_user = self.request.user)
+
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
@@ -18,10 +78,9 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 class ClothesListAPIView(generics.ListAPIView):
     queryset = Clothes.objects.all()
     serializer_class = ClothesListSerializer
+    filter_backends = [OrderingFilter]
     search_fields = ['clothes_name']
-    ordering_fields = ['price']
-
-
+    permission_classes = [permissions.IsAuthenticated]
 
 class CategoryListAPIView(generics.ListAPIView):
     queryset = CategoryClothes.objects.all()
@@ -48,6 +107,7 @@ class CartListAPIView(generics.ListAPIView):
     search_fields = ['clothes_name']
     ordering_fields = ['price']
 
+
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user)
 
@@ -72,18 +132,9 @@ class CartItemUpdateDeleteApiView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CartItem.objects.all()
     serializer_class = CartItemSerializer
 
-
-
     def get_queryset(self):
         return Order.objects.all()
 
-
-class OrderDetailViewSet(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-
-    def get_queryset(self):
-        return Order.objects.filter(user=self.queryset.user)
 
 
 class ClothesDetailViewSet(generics.RetrieveAPIView):
@@ -103,6 +154,12 @@ class ClothesDetailViewSet(generics.RetrieveAPIView):
         return Response({"error": "Color parameter is required."}, status=400)
 
 
-class FavoriteViewSet(generics.CreateAPIView):
+class FavoriteViewSet(generics.ListCreateAPIView):
     queryset = Favorite.objects.all()
     serializer_class = FavoriteSerializer
+
+
+class FavoriteItemViewSet(generics.CreateAPIView):
+    queryset = FavoriteItem.objects.all()
+    serializer_class = FavoriteItemSerializer
+

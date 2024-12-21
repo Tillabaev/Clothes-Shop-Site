@@ -3,6 +3,8 @@ from django.db import models
 from phonenumber_field.formfields import PhoneNumberField
 from multiselectfield import MultiSelectField
 
+from django.db import transaction
+from django.core.exceptions import ValidationError
 
 class UserProfile(AbstractUser):
     phone_number = PhoneNumberField(region='KG')
@@ -53,7 +55,11 @@ class Clothes(models.Model):
     active = models.BooleanField(default=True, verbose_name='в наличии')
     clothes_photo = models.FileField(upload_to='clothes_video/', null=True, blank=True)
     quantities = models.PositiveSmallIntegerField()
+<<<<<<< HEAD
     color = models.ManyToManyField(Color, related_name='clothes')
+=======
+    created_date = models.DateField(auto_created=True)
+>>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 
     def __str__(self):
         return f'{self.clothes_name} - {self.price}'
@@ -70,6 +76,17 @@ class Textile(models.Model):
     textile_clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE,related_name='textile_clothes')
 
 
+<<<<<<< HEAD
+=======
+class Color(models.Model):
+    color = models.CharField(max_length=25, unique=True)
+    clothes_connect = models.ForeignKey(Clothes, on_delete=models.CASCADE, null=True, blank=True, related_name='color')
+
+    def __str__(self):
+        return f'{self.color}'
+
+
+>>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 class Photo(models.Model):
     photo = models.FileField(upload_to='clothes_color_img/')
     clothes_photo = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_img')
@@ -88,20 +105,11 @@ class Review(models.Model):
         return f'{self.author} - {self.clothes_review} - {self.stars}'
 
 
-class Favorite(models.Model):
-    favorite_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='favorite_user')
-    clothes = models.ManyToManyField(Clothes, related_name='favorite_clothes')
-    created_date = models.DateField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.favorite_user}'
-
 
 class Cart(models.Model):
-    user = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='cart')
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f'{self.user}'
 
     def get_total_price(self):
         total_price = sum(item.get_total_price() for item in self.items.all())
@@ -109,9 +117,11 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
-    clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_cart')
-    quantity = models.PositiveSmallIntegerField(default=1)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE)
+    size = models.CharField(max_length=25, choices=Clothes.SIZE_CHOICES)  # Размер
+    color = models.ForeignKey(Color, on_delete=models.CASCADE)  # Цвет
+    quantity = models.PositiveIntegerField(default=1)
 
 
     def __str__(self):
@@ -123,7 +133,7 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     order_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    cart_item = models.ForeignKey(CartItem, on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)#
     date = models.DateTimeField(auto_now_add=True)
     STATUS_CHOICES = (
         ('обработка', 'Oбработка'),
@@ -138,13 +148,55 @@ class Order(models.Model):
     )
     delivery = models.CharField(max_length=20, default='самовызов', choices=STATUS_DELIVERY)
     address = models.CharField(max_length=100)
-    # quantity = models.PositiveSmallIntegerField()
-    # wear = models.ForeignKey(Clothes, on_delete=models.CASCADE)
+    order_price = models.PositiveIntegerField()
+
 
     def __str__(self):
         return f'{self.order_user} - {self.order_status}'
 
+    def save(self, *args, **kwargs):
+        """
+        Проверяет наличие достаточного количества товаров на складе для всех товаров в корзине,
+        а также обновляет количество товара на складе при создании заказа.
+        """
+        with transaction.atomic():  # Используем транзакции для целостности данных
+            # Получаем связанные с корзиной товары
+            cart_items = self.cart.items.all()
+
+            if not cart_items:
+                raise ValidationError("Корзина пуста. Добавьте товары перед оформлением заказа.")
+
+            # Проверяем количество каждого товара
+            for cart_item in cart_items:
+                clothes = cart_item.clothes
+                if cart_item.quantity > clothes.quantities:
+                    raise ValidationError(
+                        f"Недостаточно товара: {clothes.clothes_name}."
+                        f" В наличии {clothes.quantities}, запрошено {cart_item.quantity}."
+                    )
+
+            # Уменьшаем количество на складе
+            for cart_item in cart_items:
+                clothes = cart_item.clothes
+                clothes.quantities -= cart_item.quantity
+                clothes.save()
+
+            # Рассчитываем общую стоимость заказа
+            self.order_price = sum(cart_item.get_total_price() for cart_item in cart_items)
+
+            super().save(*args, **kwargs)  # Сохраняем заказ
+
+class Favorite(models.Model):
+    favorite_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='favorite_user')
+    created_date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.favorite_user}'
 
 
+class FavoriteItem(models.Model):
+    favorite = models.ForeignKey(Favorite, related_name='items', on_delete=models.CASCADE)
+    clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_favorite')
 
-
+    def __str__(self):
+        return f'{self.clothes}'

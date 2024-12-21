@@ -1,8 +1,6 @@
-from phonenumbers.unicode_util import Category
+
 from rest_framework import serializers
 from .models import *
-from rest_framework.exceptions import ValidationError
-
 
 class UserProfileAllSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,11 +38,16 @@ class ColorSerializer(serializers.ModelSerializer):
 class ClothesListSerializer(serializers.ModelSerializer):
     promo_category = PromoCategorySimpleSerializer(many=True)
     average_rating = serializers.SerializerMethodField()
+<<<<<<< HEAD
     color = ColorSerializer()
 
+=======
+    color = ClothesColorSerializer(read_only=True, many=True)
+    # created_date = serializers.DateField(format('%d%m%Y'))
+>>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
     class Meta:
         model = Clothes
-        fields = ['clothes_photo', 'promo_category', 'clothes_name', 'price', 'size', 'color',  'average_rating']
+        fields = ['id','clothes_photo', 'promo_category', 'clothes_name', 'price', 'size', 'color',  'average_rating','created_date']
 
     def get_average_rating(self,obj):
         return obj.get_average_rating()
@@ -73,7 +76,6 @@ class PromoSimpleSerializer(serializers.ModelSerializer):
 
 class PromoCategorySerializer(serializers.ModelSerializer):
     clothes_with_promo = ClothesListSerializer(many=True)
-    time = serializers.DateTimeField(format('%h-%m-%Y  %H:%M'))
 
     class Meta:
         model = PromoCategory
@@ -88,7 +90,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class ReviewReadSerializer(serializers.ModelSerializer):
     author = UserProfileSimpleSerializer()
-    created_date = serializers.DateTimeField(format('%h-%m-%Y  %H:%M'))
+    created_date = serializers.DateTimeField(format('%d-%m-%Y  %H:%M'))
 
     class Meta:
         model = Review
@@ -96,7 +98,7 @@ class ReviewReadSerializer(serializers.ModelSerializer):
 
 
 class CartSimpleSerializer(serializers.ModelSerializer):
-    user = UserProfileSimpleSerializer()
+
 
     class Meta:
         model = Cart
@@ -106,14 +108,12 @@ class CartSimpleSerializer(serializers.ModelSerializer):
 class CartItemSerializer(serializers.ModelSerializer):
     clothes = ClothesListSerializer(read_only=True)
     clothes_id = serializers.PrimaryKeyRelatedField(queryset=Clothes.objects.all(), write_only=True, source='clothes')
-    total_price = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
-        fields = ['clothes', 'clothes_id', 'quantity', 'total_price']
+        fields = ['clothes', 'clothes_id', 'quantity']
 
-    def get_total_price(self, obj):
-        return obj.get_total_price()
+
 
 
 class CartListSerializer(serializers.ModelSerializer):
@@ -133,6 +133,17 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['order_user', 'address', 'delivery']
+
+
+
+class OrderCheckSerializer(serializers.ModelSerializer):
+    order_user = UserProfileSimpleSerializer()
+    cart = CartListSerializer()
+    class Meta:
+        model = Order
+        fields = ['order_user','cart','date',
+                  'order_status','delivery',
+                  'address','order_price']
 
 
 class TextileSerializer(serializers.ModelSerializer):
@@ -162,4 +173,13 @@ class ClothesDetailSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
-        fields = ['clothes', 'favorite_user', 'created_date']
+        fields = ['favorite_user', 'created_date']
+
+
+class FavoriteItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteItem
+        fields = ['favorite', 'clothes']
+
+
+

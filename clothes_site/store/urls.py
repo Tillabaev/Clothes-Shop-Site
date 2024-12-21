@@ -12,13 +12,8 @@ urlpatterns = [
 
     path('review_add/', ReviewCreateAPIView.as_view(), name='review_add'),
 
-    path('cart_simple/', CartCreateAPIView.as_view(), name='cart_simple'),
+    path('cart_create/', CartCreateAPIView.as_view(), name='cart_create'),
 
-    #path('orders/', OrderCreateAPIView.as_view(), name='order_create'),
-
-    path('order/<int:pk>/', OrderDetailViewSet.as_view(), name='order_detail'),
-
-    path('favorite/', FavoriteViewSet.as_view(), name='favorite'),
 
     path('cart-list/', CartListAPIView.as_view(), name='cart-list'),
 
@@ -26,6 +21,18 @@ urlpatterns = [
 
     path('cart_item/<int:pk>/', CartItemUpdateDeleteApiView.as_view(), name='cart_item_delete'),
 
+<<<<<<< HEAD
 
 
+=======
+    path('favorite/', FavoriteViewSet.as_view(), name='favorite'),
+
+    path('favorite_item/', FavoriteItemViewSet.as_view(), name='favorite_item'),
+
+    path('cart_item/add/<int:clothes_id>/', AddToCartView.as_view(), name='cart_add_test'),
+
+    path('order_create/',CreateOrderView.as_view(),name = 'test_order_create'),
+
+    path('order_check/',OrderCheckList.as_view(),name = 'order_check'),
+>>>>>>> 04830e0207604bd1939d1eae97ea2a600fc6024c
 ]
