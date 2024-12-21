@@ -33,6 +33,7 @@ class PromoCategory(models.Model):#акция,хит продаж,тренд,к�
 class Color(models.Model):
     color = models.CharField(max_length=25, unique=True)
 
+
     def __str__(self):
         return f'{self.color} '
 
@@ -55,7 +56,7 @@ class Clothes(models.Model):
     active = models.BooleanField(default=True, verbose_name='в наличии')
     clothes_photo = models.FileField(upload_to='clothes_video/', null=True, blank=True)
     quantities = models.PositiveSmallIntegerField()
-    color = models.ManyToManyField(Color, related_name='clothes')
+    color = models.ManyToManyField(Color, related_name='clothes_color')
     created_date = models.DateField(auto_created=True)
 
     def __str__(self):
@@ -72,13 +73,6 @@ class Textile(models.Model):
     textile_name = models.CharField(max_length=35)
     textile_clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE,related_name='textile_clothes')
 
-
-class Color(models.Model):
-    color = models.CharField(max_length=25, unique=True)
-    clothes_connect = models.ForeignKey(Clothes, on_delete=models.CASCADE, null=True, blank=True, related_name='color')
-
-    def __str__(self):
-        return f'{self.color}'
 
 
 class Photo(models.Model):
@@ -111,7 +105,7 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='cart_items')
     clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE)
     size = models.CharField(max_length=25, choices=Clothes.SIZE_CHOICES)  # Размер
     color = models.ForeignKey(Color, on_delete=models.CASCADE)  # Цвет
@@ -125,9 +119,10 @@ class CartItem(models.Model):
         return self.clothes.price * self.quantity
 
 
+
 class Order(models.Model):
     order_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)#
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add=True)
     STATUS_CHOICES = (
         ('обработка', 'Oбработка'),
@@ -142,43 +137,16 @@ class Order(models.Model):
     )
     delivery = models.CharField(max_length=20, default='самовызов', choices=STATUS_DELIVERY)
     address = models.CharField(max_length=100)
-    order_price = models.PositiveIntegerField()
-
+    payment_method = models.CharField(max_length=20, default='Онлайн')#способ оплаты типа
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)#сумма заказа
 
     def __str__(self):
-        return f'{self.order_user} - {self.order_status}'
+        return f'{self.order_user}'
 
-    def save(self, *args, **kwargs):
-        """
-        Проверяет наличие достаточного количества товаров на складе для всех товаров в корзине,
-        а также обновляет количество товара на складе при создании заказа.
-        """
-        with transaction.atomic():  # Используем транзакции для целостности данных
-            # Получаем связанные с корзиной товары
-            cart_items = self.cart.items.all()
-
-            if not cart_items:
-                raise ValidationError("Корзина пуста. Добавьте товары перед оформлением заказа.")
-
-            # Проверяем количество каждого товара
-            for cart_item in cart_items:
-                clothes = cart_item.clothes
-                if cart_item.quantity > clothes.quantities:
-                    raise ValidationError(
-                        f"Недостаточно товара: {clothes.clothes_name}."
-                        f" В наличии {clothes.quantities}, запрошено {cart_item.quantity}."
-                    )
-
-            # Уменьшаем количество на складе
-            for cart_item in cart_items:
-                clothes = cart_item.clothes
-                clothes.quantities -= cart_item.quantity
-                clothes.save()
-
-            # Рассчитываем общую стоимость заказа
-            self.order_price = sum(cart_item.get_total_price() for cart_item in cart_items)
-
-            super().save(*args, **kwargs)  # Сохраняем заказ
+    def calculate_total_price(self):
+        self.total_price = sum(item.get_total_price() for item in self.cart.cart_items.all())
+        self.save()
+#считает общую стоимость всех товаров в корзине и сохраняет её в заказы короче
 
 class Favorite(models.Model):
     favorite_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='favorite_user')
@@ -189,7 +157,7 @@ class Favorite(models.Model):
 
 
 class FavoriteItem(models.Model):
-    favorite = models.ForeignKey(Favorite, related_name='items', on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_favorite')
 
     def __str__(self):

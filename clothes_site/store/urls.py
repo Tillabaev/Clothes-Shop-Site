@@ -21,14 +21,14 @@ urlpatterns = [
 
     path('cart_item/<int:pk>/', CartItemUpdateDeleteApiView.as_view(), name='cart_item_delete'),
 
-
     path('favorite/', FavoriteViewSet.as_view(), name='favorite'),
-
     path('favorite_item/', FavoriteItemViewSet.as_view(), name='favorite_item'),
 
     path('cart_item/add/<int:clothes_id>/', AddToCartView.as_view(), name='cart_add_test'),
 
-    path('order_create/',CreateOrderView.as_view(),name = 'test_order_create'),
+    path('orders/', OrderListCreateView.as_view(), name='order-list-create'),
+    path('orders/<int:pk>/', OrderDetailViewSet.as_view(), name='order-detail'),
 
-    path('order_check/',OrderCheckList.as_view(),name = 'order_check'),
+
+
 ]

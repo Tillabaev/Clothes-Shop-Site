@@ -32,7 +32,7 @@ class ColorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Color
-        fields = ['color',  'hex_code', 'color_photo']
+        fields = ['color', 'color_photo']
 
 
 class ClothesListSerializer(serializers.ModelSerializer):
@@ -127,18 +127,11 @@ class CartListSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['order_user', 'address', 'delivery']
+        fields = ['order_user', 'cart', 'date',
+                  'delivery', 'address', 'payment_method']
 
-
-
-class OrderCheckSerializer(serializers.ModelSerializer):
-    order_user = UserProfileSimpleSerializer()
-    cart = CartListSerializer()
-    class Meta:
-        model = Order
-        fields = ['order_user','cart','date',
-                  'order_status','delivery',
-                  'address','order_price']
+    def create(self, validated_data):
+        return Order.objects.create(**validated_data)        # Создаём объект заказа
 
 
 class TextileSerializer(serializers.ModelSerializer):
@@ -174,7 +167,4 @@ class FavoriteSerializer(serializers.ModelSerializer):
 class FavoriteItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = FavoriteItem
-        fields = ['favorite', 'clothes']
-
-
-
+        fields = ['cart', 'clothes']

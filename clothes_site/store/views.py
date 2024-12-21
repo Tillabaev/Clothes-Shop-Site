@@ -54,12 +54,22 @@ class CreateOrderView(APIView):
             return Response({"detail": "An error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class OrderListCreateView(generics.ListCreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
 
-class OrderCheckList(generics.ListAPIView):
-    serializer_class = OrderCheckSerializer
+    def perform_create(self, serializer):
+        serializer.save(order_user=self.request.user)
+            # Устанавливаем текущего пользователя как владельца заказа
+
+
+class OrderDetailViewSet(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(order_user = self.request.user)
+        return Order.objects.filter(order_user=self.request.user)
 
 
 
@@ -128,7 +138,7 @@ class CartItemUpdateDeleteApiView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CartItemSerializer
 
     def get_queryset(self):
-        return Order.objects.all()
+        return CartItem.objects.filter(cart__user=self.request.user)
 
 
 class ClothesDetailViewSet(generics.RetrieveAPIView):
@@ -143,7 +153,6 @@ class FavoriteViewSet(generics.ListCreateAPIView):
     serializer_class = FavoriteSerializer
 
 
-class FavoriteItemViewSet(generics.CreateAPIView):
+class FavoriteItemViewSet(generics.ListCreateAPIView):
     queryset = FavoriteItem.objects.all()
     serializer_class = FavoriteItemSerializer
-
