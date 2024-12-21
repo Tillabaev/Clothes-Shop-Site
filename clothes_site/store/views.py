@@ -1,5 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, status
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,11 +13,6 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return UserProfile.objects.filter(user=self.queryset.user)
-
-
-# class ClothesColorListAPIView(generics.ListAPIView):
-#     queryset = ClothesImg.objects.all()
-#     serializer_class = ClothesColorSerializer
 
 
 class ClothesListAPIView(generics.ListAPIView):
@@ -77,39 +73,6 @@ class CartItemUpdateDeleteApiView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CartItemSerializer
 
 
-# class OrderCreateView(generics.CreateAPIView):
-#     queryset = Order.objects.all()
-#     serializer_class = OrderSerializer
-#
-#     def post(self, request, *args, **kwargs):
-#         clothes_id = request.data.get('clothes_id')  # ID товара
-#         quantity_order = request.data.get('quantity_order')  # Количество товара в заказе
-#
-#         try:
-#             clothes = Clothes.objects.get(id=clothes_id)
-#         except Clothes.DoesNotExist:
-#             return Response({"error": "Товар не найден"}, status=status.HTTP_404_NOT_FOUND)
-#
-#         if quantity_order > clothes.quantity:
-#             return Response(
-#                 {"message": f"У нас осталось только {clothes.quantity} штук"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-#         elif quantity_order == clothes.quantity:
-#             # Создаем заказ
-#             Order.objects.create(quantity_order=quantity_order, clothes=clothes)
-#             # Обновляем количество товара в базе
-#             clothes.quantity = 0
-#             clothes.save()
-#             return Response({"message": "Заказ выполнен успешно"}, status=status.HTTP_201_CREATED)
-#         else:
-#             # Создаем заказ
-#             Order.objects.create(quantity_order=quantity_order, clothes=clothes)
-#             # Обновляем количество товара в базе
-#             clothes.quantity -= quantity_order
-#             clothes.save()
-#             return Response({"message": "Заказ выполнен успешно"}, status=status.HTTP_201_CREATED)
-
 
     def get_queryset(self):
         return Order.objects.all()
@@ -129,9 +92,17 @@ class ClothesDetailViewSet(generics.RetrieveAPIView):
     search_fields = ['clothes_name']
     ordering_fields = ['price']
 
+    @action(detail=False, methods=['get'])
+    def by_color(self, request):
+        # Түс боюнча кийимдерди фильтровать кылуу
+        color_id = request.query_params.get('color', None)
+        if color_id is not None:
+            clothes = Clothes.objects.filter(colors__id=color_id)
+            serializer = ClothesDetailSerializer(clothes, many=True)
+            return Response(serializer.data)
+        return Response({"error": "Color parameter is required."}, status=400)
+
 
 class FavoriteViewSet(generics.CreateAPIView):
     queryset = Favorite.objects.all()
     serializer_class = FavoriteSerializer
-
-

@@ -28,6 +28,13 @@ class PromoCategory(models.Model):#акция,хит продаж,тренд,к�
         return f'{self.promo_category}'
 
 
+class Color(models.Model):
+    color = models.CharField(max_length=25, unique=True)
+
+    def __str__(self):
+        return f'{self.color} '
+
+
 class Clothes(models.Model):
     clothes_name = models.CharField(max_length=32)# толстовка
     category = models.ManyToManyField(CategoryClothes,  related_name='clothes_category')
@@ -40,12 +47,13 @@ class Clothes(models.Model):
         ('XL', 'XL'),
         ('XXL', 'XXL')
     )
-    size = MultiSelectField(verbose_name='размер', choices=SIZE_CHOICES, null=True, blank=True)
+    size = MultiSelectField(verbose_name='размер', choices=SIZE_CHOICES)
     price = models.PositiveIntegerField(default=0)
     made_in = models.CharField(max_length=32)
     active = models.BooleanField(default=True, verbose_name='в наличии')
     clothes_photo = models.FileField(upload_to='clothes_video/', null=True, blank=True)
     quantities = models.PositiveSmallIntegerField()
+    color = models.ManyToManyField(Color, related_name='clothes')
 
     def __str__(self):
         return f'{self.clothes_name} - {self.price}'
@@ -60,14 +68,6 @@ class Clothes(models.Model):
 class Textile(models.Model):
     textile_name = models.CharField(max_length=35)
     textile_clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE,related_name='textile_clothes')
-
-
-class Color(models.Model):
-    color = models.CharField(max_length=25, unique=True)
-    clothes_connect = models.ForeignKey(Clothes, on_delete=models.CASCADE, null=True, blank=True, related_name='color')
-
-    def __str__(self):
-        return f'{self.color} '
 
 
 class Photo(models.Model):
@@ -112,6 +112,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     clothes = models.ForeignKey(Clothes, on_delete=models.CASCADE, related_name='clothes_cart')
     quantity = models.PositiveSmallIntegerField(default=1)
+
 
     def __str__(self):
         return f'{self.clothes} - {self.quantity}'

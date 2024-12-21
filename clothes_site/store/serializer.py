@@ -25,21 +25,22 @@ class PromoCategorySimpleSerializer(serializers.ModelSerializer):
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ['photo']
+        fields = ['photo', 'color_connect']
 
 
-class ClothesColorSerializer(serializers.ModelSerializer):
+class ColorSerializer(serializers.ModelSerializer):
     color_photo = PhotoSerializer(read_only=True, many=True)
+
 
     class Meta:
         model = Color
-        fields = ['color', 'color_photo']
+        fields = ['color',  'hex_code', 'color_photo']
 
 
 class ClothesListSerializer(serializers.ModelSerializer):
     promo_category = PromoCategorySimpleSerializer(many=True)
     average_rating = serializers.SerializerMethodField()
-    color = ClothesColorSerializer(read_only=True, many=True)
+    color = ColorSerializer()
 
     class Meta:
         model = Clothes
@@ -143,7 +144,7 @@ class TextileSerializer(serializers.ModelSerializer):
 class ClothesDetailSerializer(serializers.ModelSerializer):
     category = CategorySimpleSerializer(many=True)
     promo_category = PromoSimpleSerializer(many=True)
-    color = ClothesColorSerializer(read_only=True, many=True)
+    color = ColorSerializer(read_only=True, many=True)
     clothes_review = ReviewReadSerializer(many=True)
     average_rating = serializers.SerializerMethodField()
     textile_clothes = TextileSerializer(read_only=True, many=True)
