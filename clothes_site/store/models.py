@@ -33,7 +33,6 @@ class PromoCategory(models.Model):#акция,хит продаж,тренд,к�
 class Color(models.Model):
     color = models.CharField(max_length=25, unique=True)
 
-
     def __str__(self):
         return f'{self.color} '
 
@@ -102,6 +101,9 @@ class Cart(models.Model):
     def get_total_price(self):
         total_price = sum(item.get_total_price() for item in self.items.all())
         return total_price
+
+    def __str__(self):
+        return f'{self.user}'
 
 
 class CartItem(models.Model):

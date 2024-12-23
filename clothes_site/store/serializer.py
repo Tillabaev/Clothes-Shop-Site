@@ -27,18 +27,16 @@ class PhotoSerializer(serializers.ModelSerializer):
 
 
 class ColorSerializer(serializers.ModelSerializer):
-    color_photo = PhotoSerializer(read_only=True, many=True)
-
 
     class Meta:
         model = Color
-        fields = ['color', 'color_photo']
+        fields = ['color']
 
 
 class ClothesListSerializer(serializers.ModelSerializer):
     promo_category = PromoCategorySimpleSerializer(many=True)
     average_rating = serializers.SerializerMethodField()
-    color = ColorSerializer()
+    color = ColorSerializer(many=True)
     # created_date = serializers.DateField(format('%d%m%Y'))
     class Meta:
         model = Clothes
