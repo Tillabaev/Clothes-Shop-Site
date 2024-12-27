@@ -12,6 +12,134 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import *
 
+#cookie
+
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.response import Response
+from rest_framework import status
+from datetime import timedelta
+
+class CustomLoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Получаем пользователя из validated_data
+        user = serializer.validated_data['']
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = Response({
+            'detail': 'Успешный вход',
+            'access': access_token,
+            'refresh': refresh_token,
+        }, status=status.HTTP_200_OK)
+
+        # Устанавливаем токены в cookies
+        response.set_cookie(
+            key='access',
+            value=access_token,
+            httponly=True,  # Защищённая cookie, недоступна из JS
+            secure=True,    # Используйте True для HTTPS (рекомендуется в продакшене)
+            samesite='Lax', # Ограничивает использование кросс-доменных запросов
+            max_age=3600    # Время жизни токена (в секундах)
+        )
+        response.set_cookie(
+            key='refresh',
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite='Lax',
+            max_age=timedelta(days=7).total_seconds()
+        )
+
+        return response
+
+class LogoutCookieView(APIView):
+    def post(self, request):
+        response = Response({"detail": "Успешный выход"}, status=status.HTTP_205_RESET_CONTENT)
+
+        # Удаляем cookies
+        response.delete_cookie('access')
+        response.delete_cookie('refresh')
+
+        return response
+
+class TokenRefreshView(APIView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh')
+        if not refresh_token:
+            return Response({"detail": "Refresh token отсутствует"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+
+            response = Response({
+                'detail': 'Access token обновлён',
+                'access': access_token,
+            }, status=status.HTTP_200_OK)
+
+            # Обновляем access token в cookies
+            response.set_cookie(
+                key='access',
+                value=access_token,
+                httponly=True,
+                secure=True,
+                samesite='Lax',
+                max_age=3600
+            )
+
+            return response
+
+        except Exception:
+            return Response({"detail": "Недействительный refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+#авторизация
+from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = UserProfileSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response({"detail": "Неверные учетные данные"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = serializer.validated_data
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LogoutView(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class AddToCartView(APIView):
 
@@ -85,7 +213,6 @@ class ClothesListAPIView(generics.ListAPIView):
     serializer_class = ClothesListSerializer
     filter_backends = [OrderingFilter]
     search_fields = ['clothes_name']
-    permission_classes = [permissions.IsAuthenticated]
 
 class CategoryListAPIView(generics.ListAPIView):
     queryset = CategoryClothes.objects.all()

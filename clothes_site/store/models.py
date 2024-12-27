@@ -12,7 +12,7 @@ class UserProfile(AbstractUser):
     index_pochta = models.CharField(max_length=150, null=True, blank=True, verbose_name='почтовый индекс')
 
     def __str__(self):
-        return f'{self.first_name} - {self.last_name}'
+        return f'{self.username} - {self.email}'
 
 
 class CategoryClothes(models.Model):
