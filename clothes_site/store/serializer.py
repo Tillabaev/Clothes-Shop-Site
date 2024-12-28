@@ -1,6 +1,70 @@
-
 from rest_framework import serializers
 from .models import *
+
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from rest_framework import serializers
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ['username', 'email', 'password', 'confirm_password']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate(self, attrs):
+        # Проверка на совпадение паролей
+        if attrs['password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({"password": "Пароли не совпадают."})
+
+        # Валидация пароля через встроенные проверки Django
+        validate_password(attrs['password'])
+
+        return attrs
+
+    def create(self, validated_data):
+        # Удаляем confirm_password из данных перед созданием пользователя
+        validated_data.pop('confirm_password')
+        user = UserProfile.objects.create_user(**validated_data)
+        return user
+
+    def to_representation(self, instance):
+        refresh = RefreshToken.for_user(instance)
+        return {
+            'user': {
+                'username': instance.username,
+                'email': instance.email,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        user = authenticate(**data)
+        if user and user.is_active:
+            return {'user': user}  # Возвращаем объект пользователя
+        raise serializers.ValidationError("Неверные учетные данные")
+
+    def to_representation(self, instance):
+        user = instance['user']
+        refresh = RefreshToken.for_user(user)
+        return {
+            'user': {
+                'username': user.username,
+                'email': user.email,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+
 
 class UserProfileAllSerializer(serializers.ModelSerializer):
     class Meta:
@@ -150,7 +214,7 @@ class ClothesDetailSerializer(serializers.ModelSerializer):
         model = Clothes
         fields = ['clothes_name', 'clothes_photo', 'category',
                   'promo_category', 'quantities', 'active', 'price', 'size', 'average_rating',
-                  'made_in', 'textile_clothes', 'color', 'clothes_review','sale','description', 'category_name']
+                      'made_in', 'textile_clothes', 'color', 'clothes_review','sale','description', 'category_name']
 
     def get_average_rating(self, obj):
         return obj.get_average_rating()

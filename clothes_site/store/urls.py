@@ -2,6 +2,15 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    #default register
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    #cookie
+    path('api/login/', CustomLoginView.as_view(), name='token_obtain_pair'),
+    path('api/logout/', LogoutCookieView.as_view(), name='logout'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
     path('', ClothesListAPIView.as_view(), name='clothes_list'),
 
     path('<int:pk>/', ClothesDetailViewSet.as_view(), name='clothes_detail'),
