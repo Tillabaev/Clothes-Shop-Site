@@ -57,6 +57,9 @@ class Clothes(models.Model):
     quantities = models.PositiveSmallIntegerField()
     color = models.ManyToManyField(Color, related_name='clothes_color')
     created_date = models.DateField(auto_created=True)
+    sale = models.BooleanField(default=False, verbose_name='Распродажа')
+    description = models.TextField(null=True, blank=True)
+    category_name = models.CharField(max_length=64, null=True, blank=True)
 
     def __str__(self):
         return f'{self.clothes_name} - {self.price}'

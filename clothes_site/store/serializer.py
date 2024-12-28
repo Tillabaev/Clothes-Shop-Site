@@ -150,7 +150,7 @@ class ClothesDetailSerializer(serializers.ModelSerializer):
         model = Clothes
         fields = ['clothes_name', 'clothes_photo', 'category',
                   'promo_category', 'quantities', 'active', 'price', 'size', 'average_rating',
-                  'made_in', 'textile_clothes', 'color', 'clothes_review',]
+                  'made_in', 'textile_clothes', 'color', 'clothes_review','sale','description', 'category_name']
 
     def get_average_rating(self, obj):
         return obj.get_average_rating()

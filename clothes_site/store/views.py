@@ -1,3 +1,4 @@
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
@@ -85,7 +86,6 @@ class ClothesListAPIView(generics.ListAPIView):
     serializer_class = ClothesListSerializer
     filter_backends = [OrderingFilter]
     search_fields = ['clothes_name']
-    permission_classes = [permissions.IsAuthenticated]
 
 class CategoryListAPIView(generics.ListAPIView):
     queryset = CategoryClothes.objects.all()
@@ -111,6 +111,7 @@ class CartListAPIView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     search_fields = ['clothes_name']
     ordering_fields = ['price']
+    permission_classes = [IsAuthenticated]
 
 
     def get_queryset(self):
